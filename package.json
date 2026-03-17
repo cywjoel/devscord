@@ -1,0 +1,20 @@
+{
+  "name": "devscord",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "private": true,
+  "dependencies": {
+    "discord-api-types": "^0.38.42",
+    "discord.js": "^14.25.1",
+    "octokit": "^5.0.5"
+  },
+  "scripts": {
+    "dev": "bun --env-file=.env.dev index.ts"
+  }
+}
