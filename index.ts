@@ -8,6 +8,7 @@ import {
   GatewayIntentBits,
   MessageFlags,
 } from "discord.js";
+import { deviceFlowRepository } from "./src/supabase";
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -17,7 +18,44 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 // It makes some properties non-nullable.
 client.once(Events.ClientReady, (readyClient: Client<true>) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+
+  // Start cleanup timer for expired device flow sessions
+  startCleanupTimer();
 });
+
+/**
+ * Clean up expired device flow sessions
+ */
+async function cleanupExpiredSessions() {
+  try {
+    const result = await deviceFlowRepository.deleteExpired();
+    if (result.data && result.data > 0) {
+      console.log(
+        `[Cleanup] Deleted ${result.data} expired device flow sessions`,
+      );
+    }
+  } catch (error) {
+    console.error("[Cleanup] Failed to delete expired sessions:", error);
+  }
+}
+
+/**
+ * Start periodic cleanup timer
+ * - Runs immediately on startup
+ * - Then runs every hour
+ */
+function startCleanupTimer() {
+  // Clean up immediately on startup
+  cleanupExpiredSessions();
+
+  // Then clean up every hour (3600000 ms)
+  const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+  setInterval(cleanupExpiredSessions, CLEANUP_INTERVAL);
+
+  console.log(
+    `[Cleanup] Started device flow session cleanup (every ${CLEANUP_INTERVAL / 1000}s)`,
+  );
+}
 
 client.commands = new Collection();
 

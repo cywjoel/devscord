@@ -142,46 +142,120 @@ issue_threads
 
 ## Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅ COMPLETE
 
-- [ ] GitHub App registration
-- [ ] Database schema + Supabase setup
-- [ ] OAuth Device Flow (`/link github`)
-- [ ] Token storage + refresh
+- [x] GitHub App registration
+- [x] Database schema + Supabase setup
+  - [x] `DB_IMPL.md` created with full schema specification
+  - [x] Migration file: `supabase/migrations/001_phase1_foundation.sql`
+  - [x] Tables: `users`, `orgs`, `github_app_installations`, `device_flow_sessions`
+  - [x] Migration file: `supabase/migrations/002_fix_device_flow_sessions_fk.sql` (removed FK constraint)
+- [x] Supabase client library integration
+  - [x] Installed `@supabase/supabase-js`
+  - [x] Created `src/supabase/` module with repository pattern
+  - [x] Type-safe CRUD operations for all Phase 1 tables
+  - [x] Repositories: `UserRepository`, `OrgRepository`, `InstallationRepository`, `DeviceFlowRepository`
+- [x] OAuth Device Flow (`/link-github`)
+  - [x] Discord command handler (`src/discord/commands/auth/link-github.ts`)
+  - [x] GitHub Device Flow API integration
+  - [x] Polling logic with error handling
+  - [x] Token storage after authorization
+- [x] Token encryption (AES-256-GCM)
+  - [x] Created `src/auth/encryption.ts` with encrypt/decrypt functions
+  - [x] Token validation module (`src/auth/token-validator.ts`)
+  - [x] 21 tests (all passing)
+  - [x] Updated `link-github.ts` to encrypt tokens before storing
 
-### Phase 2: Repo Linking
+**Phase 1 Progress: 100% complete** ✅
 
-- [ ] `/link repo`, `/unlink repo` commands
-- [ ] Channel creation/deletion
+**Notes on Token Refresh**:
+- OAuth App tokens (used for user authentication) **do not expire** — no refresh needed
+- GitHub App tokens (for bot API calls) expire in 1 hour — refresh needed in Phase 2+
+- Token refresh moved to Phase 2 (GitHub App integration)
+
+---
+
+### Phase 2: Repo Linking + GitHub App Integration
+
+- [ ] GitHub App installation flow
+  - [ ] Install GitHub App on organization
+  - [ ] Store installation ID in `github_app_installations` table
+  - [ ] Exchange installation token (expires in 1 hour)
+  - [ ] **Token refresh logic for GitHub App tokens** ⬅️ Moved from Phase 1
+- [ ] `/link-repo` command
+  - [ ] Validate repo exists and user has admin access
+  - [ ] Create `#repo-issues` and `#repo-prs` channels
+  - [ ] Store channel mappings in `repos` table
+- [ ] `/unlink-repo` command
+  - [ ] Delete channels (optional, configurable)
+  - [ ] Mark repo as inactive
 - [ ] Permission sync
+  - [ ] Check user has access to linked repo
+  - [ ] Cache permissions in `user_repo_permissions` table
+- [ ] Rate limit tracking
+  - [ ] Track GitHub API rate limits per installation
+  - [ ] Store in `rate_limit_state` table
+
+---
 
 ### Phase 3: Issue Commands
 
 - [ ] Thread-per-issue sync (webhook → Discord)
-- [ ] `/assign`, `/unassign`, `/close`
-- [ ] `/comment modal`
-- [ ] `/label modals`
+  - [ ] GitHub webhook handler (`github/webhooks`)
+  - [ ] Create Discord thread when issue opened
+  - [ ] Store mapping in `issue_threads` table
+  - [ ] Webhook delivery tracking (`webhook_deliveries` table)
+- [ ] `/assign-user` command
+  - [ ] Decrypt user token
+  - [ ] Call GitHub API to assign user
+  - [ ] Handle token revocation gracefully
+- [ ] `/unassign-user` command
+- [ ] `/close-issue` command
+  - [ ] Support "complete" and "not-planned" reasons
+- [ ] `/add-comment` command
+  - [ ] Modal for comment input
+- [ ] `/add-label` and `/remove-label` commands
+  - [ ] Label autocomplete/suggestions
+
+---
 
 ### Phase 4: PR Integration
 
-- [ ] PR thread sync
+- [ ] PR thread sync (webhook → Discord)
 - [ ] PR comment commands
 - [ ] Review commands (future)
+  - [ ] `/approve`
+  - [ ] `/request-changes`
+  - [ ] `/comment-review`
+
+---
 
 ### Phase 5: Polish
 
-- [ ] Rate limit handling
 - [ ] Error notifications
-- [ ] Admin dashboard commands
+  - [ ] Discord webhook for critical errors
+  - [ ] User-friendly error messages
 - [ ] Health monitoring
+  - [ ] Rate limit alerts
+  - [ ] Token expiry warnings (GitHub App tokens)
+  - [ ] Webhook delivery failures
+- [ ] Admin dashboard commands
+  - [ ] `/stats` — Show usage statistics
+  - [ ] `/linked-repos` — List all linked repos
+  - [ ] `/linked-users` — List all linked users
+- [ ] Command usage logging
+  - [ ] Store in `command_usage_logs` table
+  - [ ] Analytics and debugging
 
 ---
 
 ## Key Decisions
 
-| Decision | Choice |
-|----------|--------|
-| GitHub App or OAuth App? | GitHub App (recommended by docs, better security) |
-| Device Flow or Web Flow? | Device Flow (Discord is headless; no browser redirect) |
-| Database? | Supabase (fits the user-mapping requirement) |
-| Webhook or Polling? | Webhooks for real-time sync (GitHub → Discord) |
+| Decision | Choice | Notes |
+|----------|--------|-------|
+| GitHub App or OAuth App? | **Hybrid** | OAuth App for user auth (Device Flow), GitHub App for bot API calls |
+| Device Flow or Web Flow? | Device Flow | Discord is headless; no browser redirect |
+| Database? | Supabase | Fits the user-mapping requirement |
+| Webhook or Polling? | Webhooks | Real-time sync (GitHub → Discord) |
+| Token Encryption? | AES-256-GCM | Encrypt tokens before storing in database |
+| Token Refresh? | Phase 2 | OAuth App tokens don't expire; GitHub App tokens need refresh |

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { REST, Routes } from "discord.js";
-import type { RESTPutAPIApplicationCommandsResult } from "discord-api-types/v9";
+import type { RESTPutAPIApplicationCommandsResult } from "discord-api-types/v10";
 
 const clientId = process.env.APPLICATION_CLIENT_ID || "";
 const token = process.env.APPLICATION_BOT_TOKEN || "";
